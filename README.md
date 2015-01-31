@@ -13,7 +13,7 @@ Import gcj-plugin settings and set contestId, problemLaunchers, commonSources, a
 ```scala
 import me.shadaj.gcj.Settings._
 
-contestId := "2974486"
+contestId := "2974486" // found in the contest page url
 
 problemLaunchers := Map(
   "A" -> "me.shadaj.gcj.MagicTrickLauncher",
@@ -39,12 +39,6 @@ See the example qualification2014 project for a full build file
 ### Check your status
 ```
 > userStatus
-```
-
-### Download and submit a solution
-
-```
-> downloadRunAndSubmit A small
 [info] Getting user status
 [info] Points: 55
 [info] Rank: 6504
@@ -61,4 +55,10 @@ See the example qualification2014 project for a full build file
 [info] 		Solved Time: 36.92 min
 [info] 		Submitted: true
 ...
+```
+
+### Download and submit a solution
+
+```
+> downloadRunAndSubmit A small
 ```

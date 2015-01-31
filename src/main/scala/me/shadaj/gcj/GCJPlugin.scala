@@ -4,7 +4,7 @@ import sbt._
 import sbt.Keys._
 
 object GCJPlugin extends Plugin {
-  override def buildSettings = Seq(libraryDependencies += "me.shadaj.gcj" %% "gcj-parser" % "0.1")
+  override def buildSettings = Seq(libraryDependencies += "me.shadaj" %% "gcj-parser" % "0.1-SNAPSHOT")
   override lazy val projectSettings = Seq(
     Tasks.login := TasksImpl.loginImpl.value,
     Tasks.initializeContest := TasksImpl.initializeContestImpl.value,
