@@ -50,7 +50,6 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
   class GCJException(msg: String) extends Exception(msg)
 
   val codeJamPythonVersion = "v1.2-beta1"
-  val humanDateFormat = DateTimeFormat.forPattern("MM/dd/yyyy HH:mm:ss")
 
   val gcjHost = host(competitionHost).secure
   val gcjBase = gcjHost / "codejam"
@@ -88,18 +87,20 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
     }
 
     private def getLoginURL: Future[String] = {
-      logger.info("Getting contest status")
-      val request = doRequestPath.GET <<?
-        Map("cmd" -> "GetInitialValues",
+      serverCompatible.flatMap { _ =>
+        logger.info("Getting contest status")
+        val request = doRequestPath.GET <<?
+          Map("cmd" -> "GetInitialValues",
             "contest" -> contestId,
             "zx" -> DateTime.now().getMillis.toString) <:<
-        Map("Referer" -> requestReferer)
+          Map("Referer" -> requestReferer)
 
-      Http(request).map { response =>
-        val ret = Json.parse(response.getResponseBody).asOpt[ContestStatus]
-        ret.map { cs =>
-          cs.login_html.split("href=\"")(1).split("\"").head
-        }.getOrElse(throw new GCJException("Unable to parse contest status"))
+        Http(request).map { response =>
+          val ret = Json.parse(response.getResponseBody).asOpt[ContestStatus]
+          ret.map { cs =>
+            cs.login_html.split("href=\"")(1).split("\"").head
+          }.getOrElse(throw new GCJException("Unable to parse contest status"))
+        }
       }
     }
 
@@ -160,8 +161,6 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
 
       Http(request).map { result =>
         Json.parse(result.getResponseBody).asOpt[TokenResponse].map { tokens =>
-          val dateString = humanDateFormat.print(tokens.expireDate)
-          logger.success(s"Exchanged cookie for middleware tokens, which will expire at $dateString")
           tokens
         }.getOrElse {
           throw new GCJException("Unable to parse middleware tokens returned by Code Jam server")
