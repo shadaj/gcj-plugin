@@ -9,9 +9,9 @@ addSbtPlugin("me.shadaj" % "gcj-plugin" % "0.1-SNAPSHOT")
 ```
 
 ## Setup
-Import gcj-plugin settings and set contestId, problemLaunchers, commonSources, and problemSources
+Enable the plugin and set contestId, problemLaunchers, commonSources, and problemSources
 ```scala
-import me.shadaj.gcj.Settings._
+enablePlugins(GCJPlugin)
 
 contestId := "2974486" // found in the contest page url
 
@@ -38,7 +38,7 @@ See the example qualification2014 project for a full build file
 ## Usage
 ### Check your status
 ```
-> userStatus
+> gcjStatus
 [info] Getting user status
 [info] Points: 55
 [info] Rank: 6504
@@ -60,5 +60,5 @@ See the example qualification2014 project for a full build file
 ### Download and submit a solution
 
 ```
-> downloadRunAndSubmit A small
+> gcjDrs A small
 ```

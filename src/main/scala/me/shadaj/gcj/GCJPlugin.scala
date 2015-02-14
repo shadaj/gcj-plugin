@@ -3,17 +3,24 @@ package me.shadaj.gcj
 import sbt._
 import sbt.Keys._
 
-object GCJPlugin extends Plugin {
+object GCJPlugin extends AutoPlugin {
   override def buildSettings = Seq(libraryDependencies += "me.shadaj" %% "gcj-parser" % "0.1-SNAPSHOT")
+  val autoImport = Keys
+
   override lazy val projectSettings = Seq(
-    Tasks.login := TasksImpl.loginImpl.value,
-    Tasks.initializeContest := TasksImpl.initializeContestImpl.value,
-    Tasks.userStatus := TasksImpl.userStatusImpl.value,
-    Tasks.downloadRunAndSubmit := TasksImpl.downloadRunAndSubmitImpl.evaluated,
-    Settings.competitionHost := "code.google.com",
-    Settings.problemLaunchers := Map.empty,
-    Settings.commonSources := Seq.empty,
-    Settings.problemSources := Map.empty,
+    Keys.login := Tasks.loginImpl.value,
+    Keys.initializeContest := Tasks.initializeContestImpl.value,
+    Keys.userStatus := Tasks.userStatusImpl.value,
+    Keys.download := Tasks.downloadImpl.evaluated,
+    Keys.run := Tasks.runImpl.evaluated,
+    Keys.submit := Tasks.submitImpl.evaluated,
+    Keys.downloadRun := Tasks.downloadRunImpl.evaluated,
+    Keys.runAndSubmit := Tasks.runAndSubmitImpl.evaluated,
+    Keys.downloadRunAndSubmit := Tasks.downloadRunAndSubmitImpl.evaluated,
+    Keys.competitionHost := "code.google.com",
+    Keys.problemLaunchers := Map.empty,
+    Keys.commonSources := Seq.empty,
+    Keys.problemSources := Map.empty,
     cleanFiles <++= baseDirectory { base => Seq(base / "inputs", base / "outputs", base / "zips")}
   )
 }
