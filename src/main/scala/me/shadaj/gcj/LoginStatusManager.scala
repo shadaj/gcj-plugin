@@ -160,10 +160,8 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
       ) addCookie cookie
 
       Http(request).map { result =>
-        Json.parse(result.getResponseBody).asOpt[TokenResponse].map { tokens =>
-          tokens
-        }.getOrElse {
-          throw new GCJException("Unable to parse middleware tokens returned by Code Jam server")
+        Json.parse(result.getResponseBody).asOpt[TokenResponse].getOrElse {
+          throw new GCJException("Unable to parse middleware tokens")
         }
       }
     }
