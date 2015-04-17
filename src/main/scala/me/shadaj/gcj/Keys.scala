@@ -19,4 +19,5 @@ object Keys {
   lazy val downloadRun = InputKey[Unit]("gcjDr", "Download and run the solution for a problem")
   lazy val runAndSubmit = InputKey[Unit]("gcjRs", "Run and submit the solution for a problem")
   lazy val downloadRunAndSubmit = InputKey[Unit]("gcjDrs", "Download, run and submit the solution to a problem")
+  lazy val zip = InputKey[Unit]("gcjZip", "Zip sources for a problem")
 }

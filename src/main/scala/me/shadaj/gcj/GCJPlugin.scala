@@ -17,6 +17,7 @@ object GCJPlugin extends AutoPlugin {
     Keys.downloadRun := Tasks.downloadRunImpl.evaluated,
     Keys.runAndSubmit := Tasks.runAndSubmitImpl.evaluated,
     Keys.downloadRunAndSubmit := Tasks.downloadRunAndSubmitImpl.evaluated,
+    Keys.zip := Tasks.zipImpl.evaluated,
     Keys.competitionHost := "code.google.com",
     Keys.problemLaunchers := Map.empty,
     Keys.commonSources := Seq.empty,

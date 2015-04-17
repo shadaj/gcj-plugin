@@ -336,6 +336,7 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
         addBodyPart("csrfmiddlewaretoken" -> tokens.tokens.SubmitAnswer).
         addBodyPart(("answer", outputFile.getName) -> outputFile).
         addBodyPart(("source-file0", sourcesZip.getName) -> sourcesZip).
+        addBodyPart("source-file-name0" -> sourcesZip.getName).
         addBodyPart("cmd" -> "SubmitAnswer").
         addBodyPart("contest" -> contestId).
         addBodyPart("problem" -> problem.id.toString).

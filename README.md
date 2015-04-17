@@ -1,6 +1,11 @@
 # gcj-plugin
 Submit solutions to Google Code Jam contests via SBT
 
+# WARNING
+<h1 style="color: red">USE AT YOUR OWN RISK!</h1>
+<h3>There is a major bug that uploads empty zip files when submitting solutions, which I believe has been fixed by the latest commit but IS NOT TESTED IN A LIVE COMPETITION</h3>
+Please raise any issues you find through GitHub issues.
+
 ## Installation
 Add the following to your plugins.sbt:
 

@@ -99,6 +99,20 @@ object Tasks {
     }.get
   }
 
+  lazy val zipImpl = Def.inputTask {
+    val args: Seq[String] = spaceDelimited("<arg>").parsed
+    val problemLetter = args.head
+
+    val toZip = (commonSources.value ++ problemSources.value.getOrElse(problemLetter, Seq.empty)).map { f =>
+      (f, baseDirectory.value.toURI.relativize(f.toURI).getPath)
+    }
+
+    (baseDirectory.value / "zips").mkdir()
+    val zipFile = baseDirectory.value / "zips" / s"$problemLetter.zip"
+    IO.zip(toZip, zipFile)
+    streams.value.log.success(s"Created zip file of sources at $zipFile")
+  }
+
   lazy val downloadRunImpl = Def.inputTaskDyn {
     buildGcjLogin.value
 
