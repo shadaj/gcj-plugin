@@ -3,7 +3,7 @@ Submit solutions to Google Code Jam contests via SBT
 
 # WARNING
 # USE AT YOUR OWN RISK!
-### There is a major bug that uploads empty zip files when submitting solutions, which I believe has been fixed by this [commit](https://github.com/shadaj/gcj-plugin/commit/eebd36f5fea945d10ad55686cbf4fff6b7d48121) but IS NOT TESTED IN A LIVE COMPETITION
+### ~~There is a major bug that uploads empty zip files when submitting solutions, which I believe has been fixed by this [commit](https://github.com/shadaj/gcj-plugin/commit/eebd36f5fea945d10ad55686cbf4fff6b7d48121) but IS NOT TESTED IN A LIVE COMPETITION~~ I tested this in the 1A round and looks like it works now. Let me know if the bug shows up for you.
 Please raise any issues you find through GitHub issues.
 
 ## Installation
