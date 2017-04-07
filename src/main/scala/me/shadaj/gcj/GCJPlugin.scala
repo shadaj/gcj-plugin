@@ -4,7 +4,11 @@ import sbt._
 import sbt.Keys._
 
 object GCJPlugin extends AutoPlugin {
-  override def buildSettings = Seq(libraryDependencies += "me.shadaj" %% "gcj-parser" % "0.1-SNAPSHOT")
+  override def requires = plugins.JvmPlugin
+
+  override def buildSettings = Seq(
+    libraryDependencies += "me.shadaj" %% "gcj-parser" % "0.1-SNAPSHOT")
+
   val autoImport = Keys
 
   override lazy val projectSettings = Seq(
@@ -22,6 +26,6 @@ object GCJPlugin extends AutoPlugin {
     Keys.problemLaunchers := Map.empty,
     Keys.commonSources := Seq.empty,
     Keys.problemSources := Map.empty,
-    cleanFiles <++= baseDirectory { base => Seq(base / "inputs", base / "outputs", base / "zips")}
+    cleanFiles ++= (baseDirectory { base => Seq(base / "inputs", base / "outputs", base / "zips")}.value)
   )
 }
