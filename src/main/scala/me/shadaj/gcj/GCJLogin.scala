@@ -9,7 +9,7 @@ class GCJLogin(competitionHost: String, baseDirectory: File, contestId: String, 
 
   def logGCJErrors[T](future: Future[T]) = {
     future.recover {
-      case e: loginManager.GCJException => sys.error(e.getMessage)
+      case e: GCJException => sys.error(e.getMessage)
     }
   }
 

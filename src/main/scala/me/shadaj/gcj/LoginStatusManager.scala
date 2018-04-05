@@ -1,7 +1,8 @@
 package me.shadaj.gcj
 
 import java.io.PrintWriter
-import java.net.{CookieHandler, CookieManager}
+import java.net.{CookieHandler, CookieManager, CookieStore}
+
 import javafx.application.Platform
 import javafx.beans.value.{ChangeListener, ObservableValue}
 import javafx.embed.swing.JFXPanel
@@ -9,57 +10,61 @@ import javafx.scene.Scene
 import javafx.scene.web.WebView
 import javax.swing.JFrame
 
-import com.ning.http.client.cookie.Cookie
-import com.ning.http.multipart.{FilePart, StringPart}
+import io.netty.handler.codec.http.cookie.Cookie
+import io.netty.handler.codec.http.cookie.DefaultCookie
 import dispatch._
+import org.asynchttpclient.request.body.multipart.{FilePart, StringPart}
 import org.fusesource.jansi.Ansi._
-import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
 import play.api.libs.json.Json
-import sbt._
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
 import scala.language.implicitConversions
+import sbt._
 
-private class CookieUI(url: String, onURLChange: (String, CookieUI) => Unit) extends JFrame("Google Sign-In") { self =>
+private class CookieUI(url: String, onURLChange: (String, CookieUI) => Unit)
+  extends JFrame("Google Sign-In") { self =>
   val fxPanel = new JFXPanel
   add(fxPanel)
   setVisible(true)
   setSize(500, 500)
-  private val cookieManager = new CookieManager()
-  def cookieStore = cookieManager.getCookieStore
-  CookieHandler.setDefault(cookieManager)
 
-  Platform.runLater(new Runnable {
-    def run(): Unit = {
-      val webView = new WebView
-      fxPanel.setScene(new Scene(webView, 500, 500))
-      webView.getEngine.load(url)
-      webView.getEngine.locationProperty().addListener(new ChangeListener[String] {
-        def changed(observable: ObservableValue[_ <: String], oldValue: String, newValue: String): Unit = {
-          onURLChange(newValue, self)
-        }
-      })
-    }
+  private val cookieManager = new CookieManager()
+
+  def cookieStore: CookieStore = cookieManager.getCookieStore
+
+  CookieHandler.setDefault(cookieManager)
+  System.setProperty("sun.net.http.allowRestrictedHeaders", "true")
+
+  Platform.runLater(() => {
+    val webView = new WebView
+    fxPanel.setScene(new Scene(webView, 500, 500))
+    webView.getEngine.load(url)
+    webView.getEngine.locationProperty().addListener(new ChangeListener[String] {
+      def changed(observable: ObservableValue[_ <: String], oldValue: String, newValue: String): Unit = {
+        onURLChange(newValue, self)
+      }
+    })
   })
 }
 
-class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId: String, logger: Logger) {
-  class GCJException(msg: String) extends Exception(msg)
+class GCJException(msg: String) extends Exception(msg)
 
+class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId: String, logger: Logger) {
   val codeJamPythonVersion = "v1.2-beta1"
 
-  val gcjHost = host(competitionHost).secure
-  val gcjBase = gcjHost / "codejam"
-  val doRequestPath = gcjBase / "contest" / "dashboard" / "do"
+  private val gcjHost = host(competitionHost).secure
+  private val gcjBase = gcjHost / "codejam"
+  private val doRequestPath = gcjBase / "contest" / "dashboard" / "do"
 
   val requestReferer = s"http://$competitionHost/codejam/contest/dashboard?c=$contestId"
 
   trait LoginStatus {
     def asLoggedInGoogle: Future[LoggedInGoogle]
+
     def asLoggedInCodeJam: Future[LoggedInCodeJam]
+
     def asContestInitialized: Future[ContestInitialized]
 
     def >(that: LoginStatus): Boolean
@@ -70,7 +75,7 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
       val requestPath = gcjBase / "cmdline"
       val request = requestPath.GET <<? Map("cmd" -> "CheckVersion", "version" -> codeJamPythonVersion)
 
-      Http(request).map { result =>
+      Http.default(request).map { result =>
         Json.parse(result.getResponseBody).asOpt[VersionCheck].map { check =>
           if (!check.valid) {
             throw new GCJException("The GCJ server you are connecting to is not compatible with this plugin")
@@ -92,10 +97,10 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
         val request = doRequestPath.GET <<?
           Map("cmd" -> "GetInitialValues",
             "contest" -> contestId,
-            "zx" -> DateTime.now().getMillis.toString) <:<
+            "zx" -> System.currentTimeMillis().toString) <:<
           Map("Referer" -> requestReferer)
 
-        Http(request).map { response =>
+        Http.default(request).map { response =>
           val ret = Json.parse(response.getResponseBody).asOpt[ContestStatus]
           ret.map { cs =>
             cs.login_html.split("href=\"")(1).split("\"").head
@@ -111,16 +116,8 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
         val promise = Promise[Cookie]()
         new CookieUI(url, (url, app) => {
           if (url == s"https://$competitionHost/codejam/contest/dashboard?c=$contestId") {
-            val maybeCookie = app.cookieStore.getCookies.find(_.getName == "SACSID").map { c =>
-              new Cookie(c.getName,
-                         c.getValue,
-                         c.getValue,
-                         c.getDomain,
-                         c.getPath,
-                         System.currentTimeMillis() + c.getMaxAge,// Since HttpCookie doesn't tell us when the cookie was created we have to guess
-                         c.getMaxAge.toInt,
-                         c.getSecure,
-                         c.isHttpOnly)
+            val maybeCookie = app.cookieStore.getCookies.asScala.find(_.getName == "SACSID").map { c =>
+              new DefaultCookie(c.getName, c.getValue)
             }
 
             if (maybeCookie.isDefined) {
@@ -140,8 +137,8 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
     }
 
     def asLoggedInGoogle: Future[LoggedInGoogle] = getGoogleCookie.map { cookie =>
-        LoggedInGoogle(cookie)
-      }
+      LoggedInGoogle(cookie)
+    }
 
     def asContestInitialized: Future[ContestInitialized] = asLoggedInGoogle.flatMap(_.asContestInitialized)
 
@@ -159,7 +156,7 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
         "actions" -> "GetInitialValues,GetInputFile,GetUserStatus,SubmitAnswer"
       ) addCookie cookie
 
-      Http(request).map { result =>
+      Http.default(request).map { result =>
         Json.parse(result.getResponseBody).asOpt[TokenResponse].getOrElse {
           throw new GCJException("Unable to parse middleware tokens")
         }
@@ -174,7 +171,7 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
 
     def asContestInitialized: Future[ContestInitialized] = asLoggedInCodeJam.flatMap(_.asContestInitialized)
 
-    def >(that: LoginStatus) = that match {
+    def >(that: LoginStatus): Boolean = that match {
       case NotLoggedIn => true
       case _ => false
     }
@@ -186,11 +183,11 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
       val request = doRequestPath.GET <<?
         Map("cmd" -> "GetInitialValues",
           "contest" -> contestId,
-          "zx" -> DateTime.now().getMillis.toString,
+          "zx" -> System.currentTimeMillis().toString,
           "csrfmiddlewaretoken" -> tokens.tokens.GetInitialValues) <:<
         Map("Referer" -> requestReferer) addCookie cookie
 
-      Http(request).map { response =>
+      Http.default(request).map { response =>
         val ret = Json.parse(response.getResponseBody).asOpt[ContestStatus]
 
         ret.foreach { p =>
@@ -208,7 +205,7 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
         Map("cmd" -> "GetProblems", "contest" -> contestId) <:<
         Map("Referer" -> requestReferer) addCookie cookie
 
-      Http(request).map { response =>
+      Http.default(request).map { response =>
         val ret = Json.parse(response.getResponseBody).asOpt[ProblemList]
 
         ret.foreach { p =>
@@ -227,7 +224,7 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
       ContestInitialized(cookie, tokens, contestStatus, problems)
     }
 
-    def >(that: LoginStatus) = that match {
+    def >(that: LoginStatus): Boolean = that match {
       case NotLoggedIn => true
       case LoggedInGoogle(_) => true
       case _ => false
@@ -240,12 +237,14 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
       val request = doRequestPath.GET <<?
         Map("cmd" -> "GetUserStatus",
           "contest" -> contestId,
-          "zx" -> DateTime.now().getMillis.toString,
+          "zx" -> System.currentTimeMillis().toString,
           "csrfmiddlewaretoken" -> tokens.tokens.GetUserStatus) <:<
         Map("Referer" -> requestReferer) addCookie cookie
 
-      Http(request).map { response =>
-        Json.parse(response.getResponseBody).asOpt[UserStatusNoProblemContext].getOrElse(throw new GCJException("No user status is available for this contest"))
+      Http.default(request).map { response =>
+        Json.parse(response.getResponseBody).asOpt[UserStatusNoProblemContext].getOrElse(
+          throw new GCJException(s"No user status is available for this contest. Unable to parse ${response.getResponseBody}")
+        )
       }
     }
 
@@ -271,12 +270,12 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
             logger.info(s"\t\tAttempts: $attempts")
 
             if (timeRemaining != -1) {
-              val timeRemainingMins = timeRemaining/60.0
+              val timeRemainingMins = timeRemaining / 60.0
               logger.info(s"\t\tTime Remaining: $timeRemainingMins%.2f min")
             }
 
             if (solvedTime != -1) {
-              val solvedTimeMins = solvedTime/60.0
+              val solvedTimeMins = solvedTime / 60.0
               logger.info(f"\t\tSolved Time: $solvedTimeMins%.2f min")
             }
 
@@ -301,7 +300,7 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
           "agent" -> s"cmdline-$codeJamPythonVersion") <:<
         Map("Referer" -> requestReferer) addCookie cookie
 
-      Http(request).map { response =>
+      Http.default(request).map { response =>
         val inputDirectory = baseDirectory / "inputs"
         val fileToWrite = baseDirectory / "inputs" / filename
         if (inputDirectory.exists() || inputDirectory.mkdirs()) {
@@ -327,8 +326,9 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
     // name -> value
     private implicit def tupleToStringPart(tuple: (String, String)): StringPart =
       new StringPart(tuple._1, tuple._2)
+
     // (name, filename) -> file
-    private implicit def tupleToFilePart(tuple: ((String, String), File)): FilePart = new FilePart(tuple._1._1, tuple._1._2, tuple._2)
+    private implicit def tupleToFilePart(tuple: ((String, String), File)): FilePart = new FilePart(tuple._1._1, tuple._2)
 
     def submitSolution(outputFile: File, sourcesZip: File, problem: Problem, problemSet: ProblemSet): Future[ProblemSubmit] = {
       logger.info(s"Submitting solution for ${problem.name} ${problemSet.name}")
@@ -345,7 +345,7 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
         addBodyPart("agent" -> s"cmdline-$codeJamPythonVersion") <:<
         Map("Content-Encoding" -> "text/plain", "Referer" -> requestReferer) addCookie cookie
 
-      Http(request).map { r =>
+      Http.default(request).map { r =>
         Json.parse(r.getResponseBody).asOpt[ProblemSubmitNoSetContext].map { noContext =>
           val ret = noContext.inContext(contestStatus.statusId, problemSet)
           logger.info(ret.ansiString)
@@ -374,7 +374,7 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
 
   private var currentStatus: LoginStatus = NotLoggedIn
 
-  def loggedInGoogle = {
+  def loggedInGoogle: Future[LoggedInGoogle] = {
     val ret = currentStatus.asLoggedInGoogle
 
     ret.foreach { r =>
@@ -384,7 +384,7 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
     ret
   }
 
-  def loggedInCodeJam = {
+  def loggedInCodeJam: Future[LoggedInCodeJam] = {
     val ret = currentStatus.asLoggedInCodeJam
 
     ret.foreach { r =>
@@ -394,7 +394,7 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
     ret
   }
 
-  def contestInitialized = {
+  def contestInitialized: Future[ContestInitialized] = {
     val ret = currentStatus.asContestInitialized
 
     ret.foreach { r =>

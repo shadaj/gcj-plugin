@@ -1,1 +1,1 @@
-addSbtPlugin("com.github.mpeltonen" % "sbt-idea" % "1.6.0")
+addSbtPlugin("com.dwijnand" % "sbt-dynver" % "3.0.0")

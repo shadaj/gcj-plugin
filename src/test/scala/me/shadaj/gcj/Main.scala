@@ -17,7 +17,7 @@ object Main extends App {
     def trace(t: => Throwable): Unit = println(t)
   }
 
-  val login = new GCJLogin("code.google.com", new File("."), "32016", printlnLogger)
+  val login = new GCJLogin("code.google.com", new File("."), "3264486", printlnLogger)
 
   def blockify[T](f: Future[T]) = {
     Await.result(f, Duration.Inf)

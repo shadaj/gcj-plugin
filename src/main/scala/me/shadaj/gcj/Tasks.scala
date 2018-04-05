@@ -7,8 +7,9 @@ import sbt.complete.DefaultParsers._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import Keys._
+
+import scala.io.StdIn
 
 object Tasks {
   private var maybeGcjLogin: Option[GCJLogin] = None
@@ -18,11 +19,12 @@ object Tasks {
   }
 
   lazy val buildGcjLogin = Def.task {
+    val s = streams.value
     if (maybeGcjLogin.isEmpty) {
       maybeGcjLogin = Some(new GCJLogin(competitionHost.value,
         baseDirectory.value,
         contestId.value,
-        streams.value.log))
+        s.log))
     }
   }
 
@@ -136,6 +138,7 @@ object Tasks {
   }
 
   lazy val runAndSubmitImpl = Def.inputTaskDyn {
+    val s = streams.value
     buildGcjLogin.value
 
     val args: Seq[String] = spaceDelimited("<arg>").parsed
@@ -152,7 +155,7 @@ object Tasks {
       val inputFile = baseDirectory.value / "inputs" / s"$problemLetter-$problemSet.in"
       val outputFile = baseDirectory.value / "outputs" / s"$problemLetter-$problemSet.out"
       (runMain in Compile).toTask(s" $launcherClass ${inputFile.absolutePath} ${outputFile.absolutePath}").map { u =>
-        if (readLine("Would you like to submit the solution [y/n]? ") == "y") {
+        if (StdIn.readLine("Would you like to submit the solution [y/n]? ") == "y") {
           val toZip = (commonSources.value ++ problemSources.value.getOrElse(problemLetter, Seq.empty)).map { f =>
             (f, baseDirectory.value.toURI.relativize(f.toURI).getPath)
           }
@@ -160,18 +163,19 @@ object Tasks {
           (baseDirectory.value / "zips").mkdir()
           val zipFile = baseDirectory.value / "zips" / s"$problemLetter.zip"
           IO.zip(toZip, zipFile)
-          streams.value.log.success(s"Created zip file of sources at $zipFile")
+          s.log.success(s"Created zip file of sources at $zipFile")
 
           blockify(l.submitSolution(problemLetter.head, problemSet, outputFile, zipFile))
           ()
         } else {
-          streams.value.log.error("Aborting submit")
+          s.log.error("Aborting submit")
         }
       }
     }.get
   }
 
   lazy val downloadRunAndSubmitImpl = Def.inputTaskDyn {
+    val s = streams.value
     buildGcjLogin.value
 
     val args: Seq[String] = spaceDelimited("<arg>").parsed
@@ -189,7 +193,7 @@ object Tasks {
         val inputFile = baseDirectory.value / "inputs" / s"$problemLetter-$problemSet.in"
         val outputFile = baseDirectory.value / "outputs" / s"$problemLetter-$problemSet.out"
         (runMain in Compile).toTask(s" $launcherClass ${inputFile.absolutePath} ${outputFile.absolutePath}").map { u =>
-          if (readLine("Would you like to submit the solution [y/n]? ") == "y") {
+          if (StdIn.readLine("Would you like to submit the solution [y/n]? ") == "y") {
             val toZip = (commonSources.value ++ problemSources.value.getOrElse(problemLetter, Seq.empty)).map { f =>
               (f, baseDirectory.value.toURI.relativize(f.toURI).getPath)
             }
@@ -197,12 +201,12 @@ object Tasks {
             (baseDirectory.value / "zips").mkdir()
             val zipFile = baseDirectory.value / "zips" / s"$problemLetter.zip"
             IO.zip(toZip, zipFile)
-            streams.value.log.success(s"Created zip file of sources at $zipFile")
+            s.log.success(s"Created zip file of sources at $zipFile")
 
             blockify(l.submitSolution(problemLetter.head, problemSet, outputFile, zipFile))
             ()
           } else {
-            streams.value.log.error("Aborting submit")
+            s.log.error("Aborting submit")
           }
         }
       })
