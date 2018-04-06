@@ -97,7 +97,6 @@ object Tasks {
       streams.value.log.success(s"Created zip file of sources at $zipFile")
 
       blockify(l.submitSolution(problemLetter.head, problemSet, outputFile, zipFile))
-      ()
     }.get
   }
 
