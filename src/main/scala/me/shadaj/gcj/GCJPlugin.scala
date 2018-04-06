@@ -5,20 +5,21 @@ import sbt.Keys._
 
 object GCJPlugin extends AutoPlugin {
   override def requires = plugins.JvmPlugin
+  override def trigger = allRequirements
 
   val autoImport = Keys
 
   override lazy val projectSettings = Seq(
-    Keys.login := Tasks.loginImpl.value,
-    Keys.initializeContest := Tasks.initializeContestImpl.value,
-    Keys.userStatus := Tasks.userStatusImpl.value,
-    Keys.download := Tasks.downloadImpl.evaluated,
-    Keys.run := Tasks.runImpl.evaluated,
-    Keys.submit := Tasks.submitImpl.evaluated,
-    Keys.downloadRun := Tasks.downloadRunImpl.evaluated,
-    Keys.runAndSubmit := Tasks.runAndSubmitImpl.evaluated,
-    Keys.downloadRunAndSubmit := Tasks.downloadRunAndSubmitImpl.evaluated,
-    Keys.zip := Tasks.zipImpl.evaluated,
+    Keys.gcjLogin := Tasks.loginImpl.value,
+    Keys.gcjInitializeContest := Tasks.initializeContestImpl.value,
+    Keys.gcjStatus := Tasks.userStatusImpl.value,
+    Keys.gcjDownload := Tasks.downloadImpl.evaluated,
+    Keys.gcjRun := Tasks.runImpl.evaluated,
+    Keys.gcjSubmit := Tasks.submitImpl.evaluated,
+    Keys.gcjDownloadRun := Tasks.downloadRunImpl.evaluated,
+    Keys.gcjRunAndSubmit := Tasks.runAndSubmitImpl.evaluated,
+    Keys.gcjDownloadRunAndSubmit := Tasks.downloadRunAndSubmitImpl.evaluated,
+    Keys.gcjZip := Tasks.zipImpl.evaluated,
     Keys.competitionHost := "code.google.com",
     Keys.problemLaunchers := Map.empty,
     Keys.commonSources := Seq.empty,

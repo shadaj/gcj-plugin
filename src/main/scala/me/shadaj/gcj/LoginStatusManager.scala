@@ -328,14 +328,17 @@ class LoginStatusManager(competitionHost: String, baseDirectory: File, contestId
       new StringPart(tuple._1, tuple._2)
 
     // (name, filename) -> file
-    private implicit def tupleToFilePart(tuple: ((String, String), File)): FilePart = new FilePart(tuple._1._1, tuple._2)
+    private implicit def tupleToFilePart(tuple: ((String, String), File)): FilePart = new FilePart(tuple._1._1, tuple._2, tuple._1._2)
 
     def submitSolution(outputFile: File, sourcesZip: File, problem: Problem, problemSet: ProblemSet): Future[ProblemSubmit] = {
+      // patch for SBT weirdness
+      Thread.currentThread().setContextClassLoader(getClass.getClassLoader)
+
       logger.info(s"Submitting solution for ${problem.name} ${problemSet.name}")
       val request = doRequestPath.POST.
         addBodyPart("csrfmiddlewaretoken" -> tokens.tokens.SubmitAnswer).
-        addBodyPart(("answer", outputFile.getName) -> outputFile).
-        addBodyPart(("source-file0", sourcesZip.getName) -> sourcesZip).
+        addBodyPart(("answer", "text/plain") -> outputFile).
+        addBodyPart(("source-file0", "application/zip") -> sourcesZip).
         addBodyPart("source-file-name0" -> sourcesZip.getName).
         addBodyPart("cmd" -> "SubmitAnswer").
         addBodyPart("contest" -> contestId).
